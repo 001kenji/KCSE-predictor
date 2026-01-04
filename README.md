@@ -16,13 +16,22 @@ KCSE Topic Predictor AI analyzes 20+ years of KCSE past papers to predict likely
 - **Database**: SQLite/PostgreSQL
 - **PDF Processing**: pdfplumber, pytesseract
 
-## Usage
-### view predictions
-![Image A](a.png)
-![Image B](b.png)
-![Image C](c.png)
-![Image D](d.png)
-![Image E](e.png)
+## 🖥️ Usage
+
+### 🔍 View Predictions
+
+<div align="center">
+
+<img src="a.jpeg" width="45%" />
+<img src="b.jpeg" width="45%" />
+
+<img src="c.jpeg" width="45%" />
+<img src="d.jpeg" width="45%" />
+
+<img src="e.jpeg" width="45%" />
+
+</div>
+
 
 
 ## ⚡ Quick Start
