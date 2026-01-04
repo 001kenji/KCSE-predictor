@@ -1,16 +1,15 @@
 from django.contrib import admin
-from django import forms
-from .models import Account,AccountManager,GroupChat,PersonalChats,CommunityChat,RequestTable,GroupChatUsersList
-from .models import AiPageCarousels,OnlineStatus
-from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.models import User
-from django.contrib.auth import logout
-from django.shortcuts import redirect
+from django.http import HttpResponseRedirect
+from django.urls import path
+from django.shortcuts import render
+from django.contrib import messages
+from .models import Subject, PastQuestion, Prediction, TrainedModel
+from .tasks_guide import KCSEQuestionProcessor
+
+from .models import Account,PaperTopicSet
 from django.contrib import admin
 from django.contrib.auth.models import Group
 from datetime import datetime
-from django.core.management.base import BaseCommand
-from django.utils import timezone
 admin.site.site_title = 'login admin'
 admin.site.site_header = 'LOGIN'
 admin.site.site_index = 'Welcome Back'
@@ -22,9 +21,9 @@ from django.contrib import messages
 from django.conf import settings
 from pathlib import Path
 import shutil
-
-from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
 
 
 class OutstandingTokenAdmin(admin.ModelAdmin):
@@ -38,6 +37,8 @@ class BlacklistedTokenAdmin(admin.ModelAdmin):
     list_filter = ('blacklist_date',)
 
 ActiveUser = Account.objects.all()
+
+@admin.register(Account)
 class UserAccountAdmin (admin.ModelAdmin):
     
     list_display=('name','email','is_staff')
@@ -61,21 +62,7 @@ class UserAccountAdmin (admin.ModelAdmin):
 
     def response_add(self, request, obj, post_url_continue=None):
         # Get the created primary key of the user
-        user_pk = str(obj.pk)
-        userid = str(obj.id)
-       
-        detail = {
-                obj.email : {
-                    'name' : obj.name,
-                    'about' : obj.about,
-                    'id' : userid,
-                    'ProfilePic' : f'http://127.0.0.1:8000{obj.ProfilePic.url}'
-                }
-            }
-        now = datetime.datetime.now()
-        short_date = now.strftime("%Y-%m-%d")   
-           
-        PersonalChats.objects.create(group_name = user_pk,RecieverId = '',SenderId = userid,Details = detail,DateCreated = str(short_date),name = obj.name,email = obj.email)
+        
         #creating a folder for each user as they are registered
         folder_name = str(obj.email)
         folder_path = os.path.join(settings.MEDIA_ROOT, folder_name)
@@ -98,7 +85,7 @@ class UserAccountAdmin (admin.ModelAdmin):
             super().save_model(request, obj, form, change)
     
     def delete_model(self, request, obj):
-        if obj.email == "daimac@gmail.com" or obj.email == 'kenjicladia@gmail.com' or obj.email == 'gestuser@gmail.com':
+        if obj.email == 'kenjicladia@gmail.com' or obj.email == 'gestuser@gmail.com':
             # Prevent deletion of the user with email "daimac@gmail.com"
             message = "You are not allowed to delete the Sole Administrator."
             self.message_user(request, message, level='ERROR')
@@ -154,88 +141,103 @@ class UserAccountAdmin (admin.ModelAdmin):
     
     readonly_fields=('id',)
     
-class GrouplistAdmin(admin.ModelAdmin):
-    exclude=['UsersList','ChatLogs','account_email']
-    readonly_fields = ['Creator','DateCreated','group_name']
-    list_display= ('title',)   
-    def save_model(self, request, obj, form, change):
-        email = request.user.email
-        name = request.user.name
-        accountref = Account.objects.get(email = email)
+
+@admin.register(Subject)
+class SubjectAdmin(admin.ModelAdmin):
+    list_display = ('name', 'code')
+    search_fields = ('name', 'code')
+
+
+
+@admin.register(PastQuestion)
+class PastQuestionAdmin(admin.ModelAdmin):
+    list_display = ('subject', 'year', 'paper_number', 'topic', 'marks', 'question_type')
+    list_filter = ('subject', 'year', 'paper_number', 'topic', 'question_type')
+    search_fields = ('question_text', 'subject__name', 'topic__name')
+
+@admin.register(Prediction)
+class PredictionAdmin(admin.ModelAdmin):
+    list_display = ('subject', 'confidence', 'created_at', 'updated_at')
+    list_filter = ('subject', 'created_at')
+    readonly_fields = ('created_at', 'updated_at')
+    actions = ['refresh_predictions']
+
+    def refresh_predictions(self, request, queryset):
+        from .tasks import make_predictions
+        make_predictions([pred.subject.id for pred in queryset])
+        self.message_user(request, f"Refreshed {queryset.count()} predictions")
+    refresh_predictions.short_description = "Refresh selected predictions"
+
+@admin.register(TrainedModel)
+class TrainedModelAdmin(admin.ModelAdmin):
+    list_display = ('trained_at', 'accuracy', 'is_active')
+    readonly_fields = ('trained_at',)
+    actions = ['activate_model']
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('train-model/', self.admin_site.admin_view(self.train_model_view), name='train_model'),
+            path('extract-pdfs/', self.admin_site.admin_view(self.extract_pdfs_view), name='extract_pdfs'),
+        ]
+        return custom_urls + urls
+    
+    def train_model_view(self, request):
+        if request.method == 'POST':
+            try:
+                processor = KCSEQuestionProcessor()
+                processor.train_prediction_model()
+                messages.success(request, "AI model training started in the background!")
+            except Exception as e:
+                messages.error(request, f"Error starting training: {str(e)}")
+            return HttpResponseRedirect("../")
         
-        if not obj.pk:  # If this is a new object
-            now = datetime.datetime.now()
-            short_date = now.strftime("%Y-%m-%d")  
-            #obj.UsersList = [email]
-            obj.account_email = accountref
-            obj.Creator = email
-            obj.DateCreated = str(short_date)
-            
-            val = f'{request.user.email}Groups{obj.pk}'
-            NewMessegerFolder = os.path.join(settings.MEDIA_ROOT,val)
-            if not os.path.exists(NewMessegerFolder):
-                os.makedirs(NewMessegerFolder)
-        super().save_model(request, obj, form, change) 
+        context = {
+            **self.admin_site.each_context(request),
+            'title': "Train New AI Model",
+            'has_active_model': TrainedModel.objects.filter(is_active=True).exists(),
+        }
+        return render(request, 'admin/train_model.html', context)
+    
+    def extract_pdfs_view(self, request):
+        if request.method == 'POST':
+            try:
+                processor = KCSEQuestionProcessor()
+                processor.process_all_pdfs()
+                messages.success(request, "PDF extraction started in the background!")
+            except Exception as e:
+                messages.error(request, f"Error starting PDF extraction: {str(e)}")
+            return HttpResponseRedirect("../")
         
-        exists = GroupChatUsersList.objects.filter(name = name,email = email,group_ref = obj).exists()
-        if not exists:
-            GroupChatUsersList.objects.create(name = name,email = email,group_ref = obj)
-
-    def delete_model(self, request, obj):
-        #removing entire user content details stored in the server
-        folder_name = f'{request.user.email}Groups{obj.pk}'        
-        folder_path = os.path.join(settings.MEDIA_ROOT, folder_name)
-        # Create the folder
-        if os.path.exists(folder_path):
-            shutil.rmtree(folder_path)
-        super().delete_model(request, obj)
-
-class CommunitylistAdmin(admin.ModelAdmin):
-    exclude=['DateCreated','ChatLogs','account_email','group_name']
-    readonly_fields = ['Creator']
-    list_display= ('title','DateCreated')  
-    def save_model(self, request, obj, form, change):
-        email = request.user.email
-        accountref = Account.objects.get(email = email)
-        if not obj.pk:  # If this is a new object
-            now = datetime.datetime.now()
-            short_date = now.strftime("%Y-%m-%d")  
-            obj.Creator = email
-            obj.account_email = accountref
-            obj.DateCreated = str(short_date)  
-            super().save_model(request, obj, form, change)
-    def delete_model(self, request, obj):
-        #removing entire user content details stored in the server
-        folder_name = f'{request.user.email}Community{obj.pk}'        
-        folder_path = os.path.join(settings.MEDIA_ROOT, folder_name)
-        # Create the folder
-        if os.path.exists(folder_path):
-            shutil.rmtree(folder_path)
-        super().delete_model(request, obj)
-
-class PersonalChatsAdmin(admin.ModelAdmin):
-    exclude=['Details','ChatLogs']
-    readonly_fields= ['RecieverId','SenderId','encryptionKey']
-    list_display= ('group_name','SenderId','RecieverId')    
-
-class GroupChatUsersListAdmin(admin.ModelAdmin):
-    readonly_fields= ['group_ref','name','email']
+        context = {
+            **self.admin_site.each_context(request),
+            'title': "Extract PDF Data",
+            'pdf_count': len([f for f in os.listdir('data/past_papers') if f.endswith('.pdf')]),
+        }
+        return render(request, 'admin/extract_pdfs.html', context)
+    
+    def activate_model(self, request, queryset):
+        if queryset.count() != 1:
+            self.message_user(request, "Please select exactly one model to activate", level=messages.ERROR)
+            return
+        
+        model = queryset.first()
+        TrainedModel.objects.update(is_active=False)
+        model.is_active = True
+        model.save()
+        self.message_user(request, f"Activated model trained at {model.trained_at}")
+    activate_model.short_description = "Activate selected model"
 
 
-class AiPageCarouselsAdmin(admin.ModelAdmin):
-    list_display = ('title',)
-    search_fields = ('title',)
+@admin.register(PaperTopicSet)
+class PaperTopicSetAdmin(admin.ModelAdmin):
+    list_display = ('subject', 'year', 'paper_number', 'topics_count')
+    list_filter = ('subject', 'year', 'paper_number')
+    search_fields = ('subject__name', 'year', 'paper_number')
+    ordering = ('subject', 'year', 'paper_number')
+    
+    def topics_count(self, obj):
+        return len(obj.topics) if obj.topics else 0
+    topics_count.short_description = 'Topics Count'
 
-class OnlineStatusAdmin(admin.ModelAdmin):
-    pass
-
-admin.site.unregister(Group)
-admin.site.register(Account, UserAccountAdmin)
-admin.site.register(GroupChat,GrouplistAdmin)
-admin.site.register(RequestTable)
-admin.site.register(CommunityChat,CommunitylistAdmin)
-admin.site.register(PersonalChats,PersonalChatsAdmin)
-admin.site.register(AiPageCarousels,AiPageCarouselsAdmin)
-admin.site.register(OnlineStatus,OnlineStatusAdmin)
-admin.site.register(GroupChatUsersList,GroupChatUsersListAdmin)
-
+# admin.site.unregister(Group)

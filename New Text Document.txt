@@ -1,0 +1,8 @@
+-- Create the user 'kenji' (skip if already exists)
+CREATE USER kenji WITH PASSWORD 'your_secure_password';
+
+-- Create the database 'kcse' owned by 'kenji'
+CREATE DATABASE kcse OWNER kenji;
+
+-- Grant all privileges on the database to the user
+GRANT ALL PRIVILEGES ON DATABASE kcse TO kenji;

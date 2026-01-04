@@ -1,6 +1,36 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark, lemonade , synthwave;
+}
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* TAILWIND CUSTOM VARIABLES */
+@theme {
+  --breakpoint-xs: '320px';
+  --shadow-xs: 0px 0px 8px 1px rgba(0, 0, 0, 0.25);
+
+}
+
+
+/* Add smooth transitions for the carousel */
+.transition-smooth {
+  transition: transform 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+/* Style for the dot indicators */
+.dot-indicator {
+  transition: all 0.3s ease;
+}
+
+
+
+
+
+
+
+
+/*  */
 
 ::-webkit-scrollbar {
   width: 8px; /* width of the scrollbar */

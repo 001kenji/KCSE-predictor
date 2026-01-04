@@ -1,23 +1,31 @@
 <!doctype html>
-<html lang="en">
+<html  data-theme="lemonade" lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta
     http-equiv="Content-Security-Policy"
     content=" 
-      script-src 'self' 'nonce-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9==';
-      style-src 'self' 'unsafe-inline';
-      connect-src 'self'  http://127.0.0.1:8000 ws://127.0.0.1:8000   ;
-      frame-src http://127.0.0.1:8000
-      " /> 
+      script-src 'self' https://cdn.jsdelivr.net  'nonce-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9==' 'unsafe-eval';
+      connect-src 'self' data:
+	  http://127.0.0.1:8000 ws://127.0.0.1:8000  
+          https://cdn.jsdelivr.net
+	  https://storage.googleapis.com
+          https://text.pollinations.ai
+          https://api.emailjs.com
+          https://generativelanguage.googleapis.com
+           ;
+           
+      worker-src 'self' blob: ;
+      frame-src http://127.0.0.1:8000 ;
+      "/> 
     
     <script nonce='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9==' src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
-    <link rel="icon" type="image/svg+xml" href="./public/icon.jpeg" />
+    <link rel="icon" type="image/svg+xml" href="/public/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>B-Intel</title>
+    <title>KCSE Predictor</title>
   </head>
   <body>
-    <div class=' h-full w-full min-h-screen' id="root"></div>
+    <div class=' h-full w-full min-h-screen overflow-x-hidden' id="root"></div>
     <script nonce='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9==' type="module" src="/src/main.jsx"></script>
   </body>
 </html>

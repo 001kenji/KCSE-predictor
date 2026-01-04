@@ -21,6 +21,7 @@ ALLOWED_HOSTS = [os.environ.get('ALLOWED_HOSTS_LIST')]
 #to allow Django and the Django channel to connect with one another via a message broker
 
 ASGI_APPLICATION = "Messeger.asgi.application" #Messeger.asgi will handle the ASGI
+
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -29,7 +30,23 @@ CHANNEL_LAYERS = {
         },
     },
 }
-redisConnection = redis.StrictRedis(host='localhost',port=6379,db=0)
+
+# settings.py
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+REDIS_CONNECTION  = redis.StrictRedis(host='localhost',port=6379,db=0)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+
+# print(REDIS_CONNECTION.ping())
+
+# REDIS_CONNECTION  = redis.StrictRedis(
+#     host=os.getenv('REDIS_CONNECTION_HOST'),
+#     port=os.getenv('REDIS_CONNECTION_PORT'),
+#     password = os.getenv('REDIS_CONNECTION_PASSWORD'),
+#     decode_responses=True)
+
+
 JsonRedisConnection = '' #redis.StrictRedis(host='redis-18769.c336.samerica-east1-1.gce.redns.redis-cloud.com',password = 'LQeYmcBD0b6aVYyvL4KjqhHZ0K2YUeEF',port=18769)
 #Application definition
 
@@ -100,7 +117,9 @@ DATABASES = {
         'PORT': '5432'
     }
 }
+
 VITE_APP_DIR = os.path.join(BASE_DIR,'dist')
+
 def load_json_from_dist(json_filename="manifest.json"):
     manifest_file_path = Path(str(settings.VITE_APP_DIR), "dist", json_filename)
     if not manifest_file_path.exists():
@@ -127,7 +146,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
         'OPTIONS': {
-            'min_length': 5,
+            'min_length': 3,
         },
     },
     {
@@ -162,7 +181,6 @@ STATICFILES_DIRS = [
 
 #STAIC_ROOT = os.path.join(BASE_DIR,'static')
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  #where images will be stored
 MEDIA_URL = '/media/'
 # Default primary key field type
@@ -181,15 +199,15 @@ CSRF_TRUSTED_ORIGINS = [os.environ.get('FRONTEND_URL')]
 # settings.py
 
 AUTH_USER_MODEL = 'Chat.Account'
-
+MODEL_FOLDER = 'media\data\past_papers'
 
 #djoser here
 # this is credentials for sending email and allowing django to use my email as a sending body 
 EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 465
-EMAIL_HOST_USER = 'machariabrian712@gmail.com'
-EMAIL_HOST_PASSWORD= 'tmni cnhb nqho csqs'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER') 
+EMAIL_HOST_PASSWORD= os.environ.get('EMAIL_HOST_PASSWORD')
 EMAIL_USE_SSL = True
 
 
@@ -261,6 +279,7 @@ REST_FRAMEWORK = {
         'anon': '10/minutes',
         'user': '30/minutes',
         'ai' : '5/min',
+        'VTV_AI' : '1/min',
         'csrf': '100/min',
         'DataThrottler' : '50/min',
         'fileUpload' : '5/min',
@@ -276,7 +295,7 @@ SIMPLE_JWT = {
 # this is for telling djoser where the knowladge of handling hashed and salted password is
 AUTHENTICATION_BACKENDS = (
     'Chat.custom_auth.CustomAuthBackend',
-    'Chat.custom_auth.CustomUserDeleteBackend',
+    # 'Chat.custom_auth.CustomUserDeleteBackend',
     'django.contrib.auth.backends.ModelBackend',
 )
 

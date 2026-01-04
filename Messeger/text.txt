@@ -1,0 +1,65 @@
+def extract_topics_from_text(self, text, subject, year, paper_num):
+        """
+        Extract set of unique topics from the paper text.
+        Handles multiple question numbering formats:
+        - 1. Question text...
+        - 1) Question text...
+        - (a) Question text...
+        - a) Question text...
+        - 1 Question text... (standalone number)
+        """
+        topics = []
+        question_number = 0
+        
+        # Improved regex pattern to handle multiple numbering formats
+        question_blocks = re.split(
+            r'\n\s*(?=\d+[\.\)]|\d+\s|\(?[a-z]\)|QUESTION\s*\d+)', 
+            text, 
+            flags=re.IGNORECASE
+        )
+        
+        # If we didn't get good splits, try more aggressive pattern
+        if len(question_blocks) < 2:
+            question_blocks = re.split(r'\n\s*(?=\d+\D)', text)
+        
+        for block in question_blocks:
+            if not block.strip():
+                continue
+            
+            # Extract the clean question text
+            question_text = re.sub(
+                r'^\s*\d+[\.\)]?\s*|\s*\[?\(?\d+\s*(marks|mks?)\)?\]?', 
+                '', 
+                block, 
+                flags=re.IGNORECASE
+            ).strip()
+            
+            if not question_text:
+                continue
+                
+            question_lower = question_text.lower()
+            subject_key = subject.code.upper()
+
+            if subject_key not in self.TOPIC_KEYWORDS:
+                continue
+
+            # Track if we found any topic for this question
+            found_topics = False
+            
+            for topic_name, keywords in self.TOPIC_KEYWORDS[subject_key].items():
+                for keyword in keywords:
+                    if re.search(r'\b' + re.escape(keyword) + r'\b', question_lower):
+                        topics.append({
+                            'topic': topic_name.capitalize(),
+                            'paper': paper_num,
+                            'question_text': question_text[:100]  # Store snippet for debugging
+                        })
+                        found_topics = True
+            
+            if found_topics:
+                question_number += 1
+
+        # print(f'Extracted {question_number} questions with {len(topics)} topic matches for {subject_key} {year} Paper {paper_num}')
+        print('quiz: ',question_number,' topics: ',len(topics))
+        
+        return topics

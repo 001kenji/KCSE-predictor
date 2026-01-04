@@ -20,14 +20,17 @@ from django.shortcuts import redirect
 from django.views.generic.base  import TemplateView
 from django.conf import settings
 from django.conf.urls.static import static
-
+from Chat.views import get_csrf_token,oauth_callback
 urlpatterns = [
     #path('admin/logout/', lambda request: redirect('/logout/', permanent=False)),
-    path('admin/', admin.site.urls),
+    path('admin/', admin.site.urls),  # admin panel path
+    path('oauth/callback/', oauth_callback, name='oauth_callback'),
+    path("cred/csrfToken/", get_csrf_token, name="get-csrf-token"),
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
-    path('chat/', include('Chat.urls')),
+    path('auth/', include('djoser.social.urls')),
     path('app/', include('Chat.urls')),
+ 
 
 ] +  static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

@@ -1,5 +1,3 @@
-import { useEffect } from 'react';
-import Notifier from '../Components/notifier'
 import {
 LOGIN_SUCCESS,
 LOGIN_FAIL,
@@ -8,12 +6,6 @@ USER_LOADED_FAIL,
 AUTHENTICATED_FAIL,
 AUTHENTICATED_SUCCESS,
 LOGOUT,
-PASSWORD_RESET_CONFIRM_FAIL ,
-PASSWORD_RESET_CONFIRM_SUCCESS,
-PASSWORD_RESET_FAIL,
-PASSWORD_RESET_SUCCESS,
-SIGNUP_SUCCESS,
-SIGNUP_FAIL,
 ACTIVATION_SUCCESS,
 ACTIVATION_FAIL,
 REFRESH_SUCCESS,
@@ -28,6 +20,10 @@ INTERCEPTER,
 ToogleTheme,
 ShowLoginContainerReducer,
 PageToogleReducer,
+RealoadUserAuthReducer,
+GOOGLE_AUTH_SUCCESS,
+GOOGLE_AUTH_FAIL,
+WARNING_EVENT
 }from '../actions/types'
 
 
@@ -36,6 +32,7 @@ const min = date.getMinutes()
 const initialState = {
     access:  localStorage.getItem('access'),
     refresh: localStorage.getItem('refresh'),
+    RealoadUserAuth : false,
     isAuthenticated:null,
     user : null,
     Expire : null,
@@ -44,7 +41,8 @@ const initialState = {
     nofifierStatus :true,
     Theme : 'dark',
     Page : '',
-    ShowLoginContainer : true
+    ShowLoginContainer : true,
+    IsloadingPricingPayment : false
 
 };
 //console.log(min)
@@ -75,8 +73,6 @@ export default function (state = initialState, action) {
                 access :payload.access,
                 refresh :payload.refresh,
                 Expire : newTime.toLocaleTimeString(),
-                notifierType : 'SUCCESS',
-                notifierMessage : 'LOGIN SUCCESS'
             }
         case REFRESH_SUCCESS:
             localStorage.setItem('access', payload.access)
@@ -87,6 +83,7 @@ export default function (state = initialState, action) {
                 notifierType : 'SUCCESS',
                 notifierMessage : 'SUCCESS'
             }
+       
         case USER_LOADED_SUCCESS:
             //{<home profile={initialState}   />}
             //console.log('data manager:', payload.is_active)
@@ -101,11 +98,17 @@ export default function (state = initialState, action) {
                 ...state,
                 isAuthenticated : true
             }
+        case RealoadUserAuthReducer :
+                return {
+                    ...state,
+                    RealoadUserAuth : payload
+                }
         case AUTHENTICATED_FAIL :
             return {
                 ...state,
                 isAuthenticated : false
             }
+      
         case USER_LOADED_FAIL:
             return {
                 ...state,
@@ -126,14 +129,14 @@ export default function (state = initialState, action) {
                 refresh: null,
                 access:null,
                 user: null,
-                notifierType : 'FAIL',
-                notifierMessage : payload ? payload : 'FAIL'
             }
         case ToogleTheme:
             return {
                 ...state,
                 Theme : payload
             }
+        
+        case GOOGLE_AUTH_FAIL:
         case LOGOUT:
             localStorage.removeItem('access')
             localStorage.removeItem('refresh')
@@ -148,13 +151,16 @@ export default function (state = initialState, action) {
                 notifierMessage :  payload ? payload : 'FAIL'
 
             }
-        case SIGNUP_SUCCESS:
+        case GOOGLE_AUTH_SUCCESS:
+            localStorage.setItem('access', payload.access);
+            localStorage.setItem('refresh', payload.refresh);
             return {
                 ...state,
-                isAuthenticated: false,                
-                notifierType : 'SUCCESS',
-                notifierMessage : payload ? payload : 'SIGNUP SUCCESS'
+                isAuthenticated : true,
+                access: payload.access,
+                refresh: payload.refresh
             }
+      
         case LOADING_USER : 
             return {
                 ...state,
@@ -181,55 +187,28 @@ export default function (state = initialState, action) {
                 notifierType : 'SUCCESS',
                 notifierMessage : payload ? payload : 'SUCCESS'
             }
+        case WARNING_EVENT:
+            
+            return {
+                ...state,
+                notifierType : 'WARNING',
+                notifierMessage : payload ? payload : ''
+            }
         case FAIL_EVENT:
             return {
                 ...state,
                 notifierType : 'FAIL',
                 notifierMessage : payload ? payload : 'FAIL'
             }
-        case SIGNUP_FAIL:
-            return {
-                ...state,
-                notifierType : 'FAIL',
-                notifierMessage : payload ? payload : 'SIGNUP FAIL'
-            }
-        case PASSWORD_RESET_CONFIRM_FAIL:
-            return {
-                ...state,
-                notifierType : 'FAIL',
-                notifierMessage : payload ? payload : 'CONFIRM RESET FAIL'
-            }
-        case PASSWORD_RESET_CONFIRM_SUCCESS:
-            return {
-                ...state,
-                notifierType : 'SUCCESS',
-                notifierMessage : payload ? payload : 'CONFIRM RESET SUCCESS'
-            }
-        case PASSWORD_RESET_FAIL:
-            return {
-                ...state,
-                notifierType : 'FAIL',
-                notifierMessage : payload ? payload : 'Request fail to change password'
-            }
+       
         
-        case PASSWORD_RESET_SUCCESS:
-            return {
-                ...state,
-                notifierType : 'SUCCESS',
-                notifierMessage : payload ? payload : 'Check your email to change password'
-            }
         case ACTIVATION_SUCCESS:
             return {
                 ...state,
                 notifierType : 'SUCCESS',
                 notifierMessage : payload ? payload : 'ACTIVATION SUCCESS'
             }
-        case ACTIVATION_FAIL:
-            return {
-                ...state,
-                notifierType : 'FAIL',
-                notifierMessage : payload ? payload : 'ACTIVATION FAIL'
-            }
+        
         case INTERCEPTER:
             return {
                 ...state,

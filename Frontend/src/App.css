@@ -1,9 +1,8 @@
+
 input {
-    border: 1px solid black;
-    padding: 3px;
-    border-radius: 3px;
-    min-height: 30px;
-    
+   background-color: transparent;
+  outline: none;
+  border: none;
 }
 
 
@@ -14,7 +13,10 @@ input {
   background-image: url("./assets/images/lost.jpg");
 }
 
-
+@font-face {
+  font-family: BigTitle;
+  src: url('./assets/Fonts/Poppins/Poppins-Bold.ttf');
+ }
 ::selection {
     background-color: black;
     color: white;
@@ -31,23 +33,6 @@ input {
     outline: none; /* Remove outline */
   }
 
-  @media print {
-    .table-container {
-      /* Set the table layout */
-      table-layout: fixed;
-  
-      /* Set the width of the table */
-      width: 100%;
-  
-      /* Set the margin of the table */
-      margin: 1cm;
-  
-      /* Set the paper size */
-      @page {
-        size: A4 portrait;
-      }
-    }
-  }
 
 
 @font-face {
@@ -93,16 +78,4 @@ input {
   font-family: PoppinsN;
 }
 
-/* Remove border from the quill editor */
-.ql-container {
-  border: none !important; /* Remove border */
-  box-shadow: none !important; /* Remove box shadow */
-  
-}
-/* Remove focus outline when the editor is focused */
-.ql-container:focus,
-.ql-editor:focus {
-  outline: none !important;
-  border: none !important;
-  box-shadow: none !important;
-}
+
